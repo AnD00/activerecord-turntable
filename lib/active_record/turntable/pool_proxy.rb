@@ -13,7 +13,7 @@ module ActiveRecord::Turntable
 
     if Util.ar70_or_later?
       delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :checkout_timeout=,
-      :connections, :size, :reaper, :schema_cache, :schema_cache=, :db_config, :pool_config, :connection_klass, :discarded?,
+      :connections, :size, :reaper, :schema_cache, :schema_cache=, :pool_config, :connection_klass, :discarded?,
       :connection_class, :async_executor, :shard, :role, :schedule_query, to: :proxy
     elsif Util.ar61_or_later?
       delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :checkout_timeout=, :dead_connection_timeout,
