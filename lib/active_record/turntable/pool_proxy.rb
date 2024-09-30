@@ -24,7 +24,7 @@ module ActiveRecord::Turntable
       :spec, :connections, :size, :reaper, :table_exists?, :query_cache_enabled, :enable_query_cache!, :disable_query_cache!, :schema_cache, :schema_cache=, to: :proxy
     end
 
-    %w(columns_hash column_defaults primary_keys).each do |name|
+    %w(columns_hash column_defaults primary_keys db_config).each do |name|
       define_method(name.to_sym) do
         @proxy.send(name.to_sym)
       end
