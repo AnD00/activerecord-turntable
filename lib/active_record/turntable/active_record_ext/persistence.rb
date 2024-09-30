@@ -107,7 +107,8 @@ module ActiveRecord::Turntable
             )
 
             attributes.each do |k, v|
-              write_attribute_without_type_cast(k, v)
+              @attributes.write_cast_value(k, v)
+              clear_attribute_change(k)
             end
 
             affected_rows == 1
