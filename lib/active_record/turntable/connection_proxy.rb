@@ -239,7 +239,7 @@ module ActiveRecord::Turntable
     delegate :connected?, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :dead_connection_timeout,
              :spec, :connections, :size, :reaper, to: :connection_pool
 
-    %w(columns columns_hash column_defaults primary_keys).each do |name|
+    %w(columns columns_hash column_defaults primary_keys db_config).each do |name|
       define_method(name.to_sym) do
         default_shard.connection_pool.send(name.to_sym)
       end
