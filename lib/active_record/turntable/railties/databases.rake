@@ -138,8 +138,6 @@ end
   drop
   schema:dump
   schema:load
-  structure:dump
-  structure:load
   test:purge
 ).each do |task_name|
   db_namespace[task_name].enhance do
