@@ -32,6 +32,8 @@ module ActiveRecord::Turntable
             if Util.ar_version_equals_or_later?("7.0")
               binds = []
               payload[:binds].each_with_index do |attr, i|
+                next if casted_params[i].nil?
+
                 attribute_name = if attr.respond_to?(:name)
                   attr.name
                 elsif attr.respond_to?(:[]) && attr[i].respond_to?(:name)
@@ -59,6 +61,12 @@ module ActiveRecord::Turntable
         sql  = color(sql, sql_color(sql), true) if Util.ar60_or_later? && colorize_logging
 
         debug "  #{name}  #{sql}#{binds}"
+      end
+
+      private
+
+      def filter(name, value)
+        ActiveRecord::Base.inspection_filter.filter_param(name, value)
       end
     end
   end
