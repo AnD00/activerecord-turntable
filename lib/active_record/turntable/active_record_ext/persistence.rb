@@ -24,6 +24,7 @@ module ActiveRecord::Turntable
             end
 
           @association_cache = fresh_object.instance_variable_get(:@association_cache) if Util.ar_version_earlier_than?("7.0")
+          @association_cache.each_value { |association| association.owner = self }
           @attributes = fresh_object.instance_variable_get("@attributes")
           @new_record = false
           self
