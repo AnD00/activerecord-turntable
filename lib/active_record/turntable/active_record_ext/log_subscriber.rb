@@ -12,7 +12,11 @@ module ActiveRecord::Turntable
 
         return if ActiveRecord::LogSubscriber::IGNORE_PAYLOAD_NAMES.include?(payload[:name])
 
-        name  = "#{payload[:name]} (#{event.duration.round(1)}ms)"
+        name  = if Util.ar_version_equals_or_later?("7.0") && payload[:async]
+                 "ASYNC #{payload[:name]} (#{payload[:lock_wait].round(1)}ms) (db time #{event.duration.round(1)}ms)"
+                else
+                  "#{payload[:name]} (#{event.duration.round(1)}ms)"
+                end
         name  = "#{name} [Shard: #{payload[:turntable_shard_name]}]" if payload[:turntable_shard_name]
         name  = "CACHE #{name}" if payload[:cached]
         sql   = payload[:sql]
@@ -25,9 +29,29 @@ module ActiveRecord::Turntable
                             else
                               type_casted_binds(payload[:binds], payload[:type_casted_binds])
                             end
-            binds = "  " + payload[:binds].zip(casted_params).map { |attr, value|
-              render_bind(attr, value)
-            }.inspect
+            if Util.ar_version_equals_or_later?("7.0")
+              binds = []
+              payload[:binds].each_with_index do |attr, i|
+                next if casted_params[i].nil?
+
+                attribute_name = if attr.respond_to?(:name)
+                  attr.name
+                elsif attr.respond_to?(:[]) && attr[i].respond_to?(:name)
+                  attr[i].name
+                else
+                  nil
+                end
+
+                filtered_params = filter(attribute_name, casted_params[i])
+                binds << render_bind(attr, filtered_params)
+              end
+              binds = binds.inspect
+              binds.prepend(" ")
+            else
+              binds = "  " + payload[:binds].zip(casted_params).map { |attr, value|
+                render_bind(attr, value)
+              }.inspect
+            end
           else
             binds = "  " + payload[:binds].map { |attr| render_bind(attr) }.inspect
           end
@@ -37,6 +61,12 @@ module ActiveRecord::Turntable
         sql  = color(sql, sql_color(sql), true) if Util.ar60_or_later? && colorize_logging
 
         debug "  #{name}  #{sql}#{binds}"
+      end
+
+      private
+
+      def filter(name, value)
+        ActiveRecord::Base.inspection_filter.filter_param(name, value)
       end
     end
   end

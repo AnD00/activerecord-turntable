@@ -14,6 +14,7 @@ module ActiveRecord::Turntable
                          else
                            self.class.unscoped
                          end
+          finder_scope = finder_scope.preload(strict_loaded_associations) if Util.ar_version_equals_or_later?("7.0")
 
           fresh_object =
             if options && options[:lock]
@@ -22,6 +23,8 @@ module ActiveRecord::Turntable
               finder_scope.find(id)
             end
 
+          @association_cache = fresh_object.instance_variable_get(:@association_cache) if Util.ar_version_earlier_than?("7.0")
+          @association_cache.each_value { |association| association.owner = self }
           @attributes = fresh_object.instance_variable_get("@attributes")
           @new_record = false
           self
@@ -107,7 +110,8 @@ module ActiveRecord::Turntable
             )
 
             attributes.each do |k, v|
-              write_attribute_without_type_cast(k, v)
+              @attributes.write_cast_value(k, v)
+              clear_attribute_change(k)
             end
 
             affected_rows == 1
@@ -197,6 +201,14 @@ module ActiveRecord::Turntable
               yield(self) if block_given?
 
               rows_affected
+            end
+          end
+
+          if Util.ar_version_earlier_than?("7.0")
+            def strict_loaded_associations
+              @association_cache.find_all do |_, assoc|
+                assoc.owner.strict_loading? && !assoc.owner.strict_loading_n_plus_one_only?
+              end.map(&:first)
             end
           end
       end

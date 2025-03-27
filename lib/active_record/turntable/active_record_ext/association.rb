@@ -5,6 +5,9 @@ module ActiveRecord::Turntable
     module Association
       include ShardingCondition
 
+      attr_accessor :owner
+      attr_reader :target, :reflection, :disable_joins
+
       unless Util.ar61_or_later?
         def self.prepended(mod)
           ActiveRecord::Associations::Builder::Association::VALID_OPTIONS << :foreign_shard_key
