@@ -1,6 +1,12 @@
+require "active_record/turntable/per_thread_registry"
+
 module ActiveRecord::Turntable
   class SlaveRegistry
-    extend ActiveSupport::PerThreadRegistry
+    if Util.ar71_or_later?
+      extend ActiveRecord::Turntable::PerThreadRegistry
+    else
+      extend ActiveSupport::PerThreadRegistry
+    end
 
     def initialize
       @registry = Hash.new { |h, k| h[k] = {} }

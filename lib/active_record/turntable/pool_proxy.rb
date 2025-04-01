@@ -11,7 +11,11 @@ module ActiveRecord::Turntable
       yield proxy
     end
 
-    if Util.ar70_or_later?
+    if Util.ar71_or_later?
+      delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :checkout_timeout=,
+      :connections, :size, :reaper, :schema_cache, :schema_cache=, :pool_config, :connection_klass, :discarded?,
+      :connection_class, :async_executor, :shard, :role, :schedule_query, :schema_reflection, :schema_reflection=, to: :proxy
+    elsif Util.ar70_or_later?
       delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :checkout_timeout=,
       :connections, :size, :reaper, :schema_cache, :schema_cache=, :pool_config, :connection_klass, :discarded?,
       :connection_class, :async_executor, :shard, :role, :schedule_query, to: :proxy
