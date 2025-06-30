@@ -2,8 +2,8 @@ source "https://rubygems.org"
 
 gemspec
 
-gem "rails", "7.0.8"
+gem "rails", "7.1.5"
 
-gem "actionview", "7.0.8"
-gem "activerecord", "7.0.8"
-gem "activesupport", "7.0.8"
+gem "actionview", "7.1.5"
+gem "activerecord", "7.1.5"
+gem "activesupport", "7.1.5"

@@ -108,6 +108,16 @@ module ActiveRecord::Turntable
     end
 
     def to_sql(arel, binds = [])
+      if Util.ar71_or_later?
+        if arel.respond_to?(:ast)
+          arel_or_sql_string = arel.ast
+          if Arel.arel_node?(arel_or_sql_string) && !(String === arel_or_sql_string)
+            unless binds.empty?
+              binds = []
+            end
+          end
+        end
+      end
       default_connection.to_sql(arel, binds)
     end
 
@@ -237,9 +247,9 @@ module ActiveRecord::Turntable
     end
 
     delegate :connected?, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :dead_connection_timeout,
-             :spec, :connections, :size, :reaper, to: :connection_pool
+             :connections, :size, :reaper, to: :connection_pool
 
-    %w(columns columns_hash column_defaults primary_keys db_config).each do |name|
+    %w(columns_hash column_defaults primary_keys db_config).each do |name|
       define_method(name.to_sym) do
         default_shard.connection_pool.send(name.to_sym)
       end

@@ -23,8 +23,8 @@ Gem::Specification.new do |spec|
   spec.require_paths = ["lib"]
   spec.required_ruby_version = ">= 2.2.2"
 
-  spec.add_runtime_dependency "activerecord",  ">= 5.0", "< 7.1"
-  spec.add_runtime_dependency "activesupport", ">= 5.0", "< 7.1"
+  spec.add_runtime_dependency "activerecord",  ">= 5.0", "< 7.2"
+  spec.add_runtime_dependency "activesupport", ">= 5.0", "< 7.2"
   spec.add_runtime_dependency "bsearch",       "~> 1.5"
   spec.add_runtime_dependency "sql_tree",      "= 0.2.0"
 
@@ -49,7 +49,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rspec-collection_matchers"
   spec.add_development_dependency "rspec-its"
   spec.add_development_dependency "rspec-parameterized"
-  spec.add_development_dependency "rspec-rails", "~> 5.0"
+  spec.add_development_dependency "rspec-rails", "~> 6.0"
   spec.add_development_dependency "rubocop"
   spec.add_development_dependency "rubocop-rspec"
   spec.add_development_dependency "timecop"

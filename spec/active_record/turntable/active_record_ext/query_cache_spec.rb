@@ -6,7 +6,7 @@ describe ActiveRecord::Turntable::ActiveRecordExt::QueryCache do
     executor = Class.new(ActiveSupport::Executor)
     ActiveRecord::QueryCache.install_executor_hooks executor
     lambda do |env|
-      if ActiveRecord::Turntable::Util.ar60_or_later?
+      if ActiveRecord::Turntable::Util.ar60_or_later? && !ActiveRecord::Turntable::Util.ar71_or_later?
         original_handlers = ActiveRecord::Base.connection_handlers
         ActiveRecord::Base.connection_handlers = { writing: ActiveRecord::Base.default_connection_handler, reading: ActiveRecord::ConnectionAdapters::ConnectionHandler.new }
       end
@@ -14,7 +14,7 @@ describe ActiveRecord::Turntable::ActiveRecordExt::QueryCache do
         app.call(env)
       end
     ensure
-      if ActiveRecord::Turntable::Util.ar60_or_later?
+      if ActiveRecord::Turntable::Util.ar60_or_later? && !ActiveRecord::Turntable::Util.ar71_or_later?
         ActiveRecord::Base.connection_handlers = original_handlers
       end
     end

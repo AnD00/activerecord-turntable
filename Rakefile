@@ -9,6 +9,7 @@ end
 
 require "active_record"
 require "active_record/turntable/active_record_ext/database_tasks"
+require "active_record/turntable/util"
 
 namespace :turntable do
   namespace :db do
@@ -20,7 +21,7 @@ namespace :turntable do
 
     task :load_config => :rails_env do
       yaml_file = File.join(File.dirname(__FILE__), "spec/config/database.yml")
-      ActiveRecord::Base.configurations = YAML.load ERB.new(IO.read(yaml_file)).result
+      ActiveRecord::Base.configurations = YAML.load(ERB.new(IO.read(yaml_file)).result, aliases: true)
     end
 
     desc "create turntable test database"
@@ -42,7 +43,7 @@ namespace :turntable do
       ActiveRecord::Base.include(ActiveRecord::Turntable)
       ActiveRecord::ConnectionAdapters::SchemaStatements.include(ActiveRecord::Turntable::Migration::SchemaStatementsExt)
 
-      configurations = [ActiveRecord::Base.configurations.configs_for(env_name: Rails.env).first.configuration_hash]
+      configurations = [ActiveRecord::Base.configurations.configs_for(env_name: RAILS_ENV).first.configuration_hash]
       configurations += ActiveRecord::Tasks::DatabaseTasks.current_turntable_cluster_configurations(RAILS_ENV).map { |v| v[1] }.flatten.uniq
 
       configurations.each do |configuration|

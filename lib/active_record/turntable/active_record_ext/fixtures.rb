@@ -105,7 +105,30 @@ module ActiveRecord
           end
         end
 
-        if ActiveRecord::Turntable::Util.ar51_or_later?
+        if ActiveRecord::Turntable::Util.ar71_or_later?
+          @connection_subscriber = ActiveSupport::Notifications.subscribe("!connection.active_record") do |_, _, _, _, payload|
+            connection_name = payload[:connection_name] if payload.key?(:connection_name)
+            shard = payload[:shard] if payload.key?(:shard)
+  
+            if connection_name
+              begin
+                connection = ActiveRecord::Base.connection_handler.retrieve_connection(connection_name, shard: shard)
+              rescue ConnectionNotEstablished
+                connection = nil
+              end
+  
+              if connection
+                setup_shared_connection_pool
+  
+                if !@fixture_connections.include?(connection)
+                  connection.begin_transaction joinable: false, _lazy: false
+                  connection.pool.lock_thread = true if lock_threads
+                  @fixture_connections << connection
+                end
+              end
+            end
+          end
+        elsif ActiveRecord::Turntable::Util.ar51_or_later?
           # When connections are established in the future, begin a transaction too
           @connection_subscriber = ActiveSupport::Notifications.subscribe("!connection.active_record") do |_, _, _, _, payload|
             spec_name = payload[:spec_name] if payload.key?(:spec_name)

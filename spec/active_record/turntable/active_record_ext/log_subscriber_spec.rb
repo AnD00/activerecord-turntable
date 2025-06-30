@@ -1,9 +1,10 @@
 require "spec_helper"
 
 describe ActiveRecord::Turntable::ActiveRecordExt::LogSubscriber do
+  ACTIVE_SUPPORT_LOGSUBSCRIBER_CLEAR = "\e[0m"
   REGEXP_MAGENTA = Regexp.escape(ActiveRecord::LogSubscriber::MAGENTA)
   REGEXP_CYAN = Regexp.escape(ActiveRecord::LogSubscriber::CYAN)
-  REGEXP_CLEAR = Regexp.escape(ActiveRecord::LogSubscriber::CLEAR)
+  REGEXP_CLEAR = Regexp.escape(ACTIVE_SUPPORT_LOGSUBSCRIBER_CLEAR)
 
   class TestLogSubscriber < ActiveRecord::LogSubscriber
     attr_reader :debugs

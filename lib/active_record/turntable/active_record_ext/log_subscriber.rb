@@ -5,8 +5,11 @@ module ActiveRecord::Turntable
     module LogSubscriber
       # @note prepend to add shard name logging
       def sql(event)
-        self.class.runtime += event.duration
-        return unless logger.debug?
+
+        unless Util.ar_version_equals_or_later?("7.1")
+          self.class.runtime += event.duration
+          return unless logger.debug?
+        end
 
         payload = event.payload
 
@@ -58,7 +61,11 @@ module ActiveRecord::Turntable
         end
 
         name = colorize_payload_name(name, payload[:name])
-        sql  = color(sql, sql_color(sql), true) if Util.ar60_or_later? && colorize_logging
+        if Util.ar_version_equals_or_later?("7.1")
+          sql  = color(sql, sql_color(sql), bold: true) if Util.ar60_or_later? && colorize_logging
+        else
+          sql  = color(sql, sql_color(sql), true) if Util.ar60_or_later? && colorize_logging
+        end
 
         debug "  #{name}  #{sql}#{binds}"
       end
