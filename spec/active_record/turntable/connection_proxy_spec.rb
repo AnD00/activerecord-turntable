@@ -4,7 +4,11 @@ describe ActiveRecord::Turntable::ConnectionProxy do
   context "When initialized" do
     subject { ActiveRecord::Turntable::ConnectionProxy.new(User, cluster) }
     let(:cluster) { ActiveRecord::Base.turntable_configuration.cluster(:user_cluster) }
-    its(:default_connection) { is_expected.to eql(ActiveRecord::Base.connection) }
+    if ActiveRecord::Turntable::Util.ar72_or_later?
+      its(:default_connection) { is_expected.to eql(ActiveRecord::Base.lease_connection) }
+    else
+      its(:default_connection) { is_expected.to eql(ActiveRecord::Base.connection) }
+    end
   end
 
   context "User insert with id" do
@@ -201,24 +205,48 @@ describe ActiveRecord::Turntable::ConnectionProxy do
         expect(result).to all(be true)
       end
 
-      it "each shard has one cache entry within the block" do
-        result = connection_proxy.cache {
-          User.all.to_a
-          klass.turntable_cluster.shards.map do |shard|
+      # QueryCache が Hash じゃなく ActiveRecord::ConnectionAdapters::QueryCache::Store になった
+      # https://github.com/rails/rails/pull/50938
+      if ActiveRecord::Turntable::Util.ar72_or_later?
+        it "each shard has one cache entry within the block" do
+          result = connection_proxy.cache {
+            User.all.to_a
+            klass.turntable_cluster.shards.map do |shard|
+              shard.connection.query_cache.empty?
+            end
+          }
+          expect(result).to all(be false)
+        end
+
+        it "query cache deleted all shard outside of the block" do
+          connection_proxy.cache {
+            User.all.to_a
+          }
+          result = klass.turntable_cluster.shards.map do |shard|
+            shard.connection.query_cache.empty?
+          end
+          expect(result).to all(be true)
+        end
+      else
+        it "each shard has one cache entry within the block" do
+          result = connection_proxy.cache {
+            User.all.to_a
+            klass.turntable_cluster.shards.map do |shard|
+              shard.connection.query_cache.dup
+            end
+          }
+          expect(result).to all(have(1).item)
+        end
+
+        it "query cache deleted all shard outside of the block" do
+          connection_proxy.cache {
+            User.all.to_a
+          }
+          result = klass.turntable_cluster.shards.map do |shard|
             shard.connection.query_cache.dup
           end
-        }
-        expect(result).to all(have(1).item)
-      end
-
-      it "query cache deleted all shard outside of the block" do
-        connection_proxy.cache {
-          User.all.to_a
-        }
-        result = klass.turntable_cluster.shards.map do |shard|
-          shard.connection.query_cache.dup
+          expect(result).to all(be_empty)
         end
-        expect(result).to all(be_empty)
       end
     end
 

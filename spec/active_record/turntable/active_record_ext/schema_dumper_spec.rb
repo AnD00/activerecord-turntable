@@ -3,7 +3,11 @@ require "spec_helper"
 describe ActiveRecord::Turntable::ActiveRecordExt::SchemaDumper do
   def dump_schema
     stream = StringIO.new
-    ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+    if ActiveRecord::Turntable::Util.ar72_or_later?
+      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection_pool, stream)
+    else
+      ActiveRecord::SchemaDumper.dump(ActiveRecord::Base.connection, stream)
+    end
     stream.string
   end
 

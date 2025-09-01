@@ -16,7 +16,11 @@ describe ActiveRecord::TestFixtures do
 
   describe "#setup_fixtures" do
     after do
-      test_fixture.teardown_fixtures
+      if ActiveRecord::Turntable::Util.ar72_or_later?
+        test_fixture.after_teardown
+      else
+        test_fixture.teardown_fixtures
+      end
     end
 
     subject { test_fixture.setup_fixtures }

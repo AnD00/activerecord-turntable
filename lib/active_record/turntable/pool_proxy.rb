@@ -7,11 +7,21 @@ module ActiveRecord::Turntable
     attr_reader :proxy
     alias_method :connection, :proxy
 
-    def with_connection
-      yield proxy
+    if Util.ar72_or_later?
+      def with_connection(prevent_permanent_checkout: false)
+        yield proxy
+      end
+    else
+      def with_connection()
+        yield proxy
+      end
     end
 
-    if Util.ar71_or_later?
+    if Util.ar72_or_later?
+      delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout=,
+      :connections, :size, :reaper, :schema_cache, :schema_cache=, :pool_config, :connection_klass, :discarded?,
+      :connection_class, :async_executor, :shard, :role, :schedule_query, :schema_reflection, :schema_reflection=, :server_version, to: :proxy
+    elsif Util.ar71_or_later?
       delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout, :checkout_timeout=,
       :connections, :size, :reaper, :schema_cache, :schema_cache=, :pool_config, :connection_klass, :discarded?,
       :connection_class, :async_executor, :shard, :role, :schedule_query, :schema_reflection, :schema_reflection=, to: :proxy
@@ -44,6 +54,25 @@ module ActiveRecord::Turntable
       connection_pools_list.any?(&:active_connection?)
     end
 
+    if Util.ar72_or_later?
+      def lease_connection
+        proxy
+      end
+
+      def disable_query_cache(dirties: true, &block)
+        connection_pools_list.each do |pool|
+          pool.lease_connection.disable_query_cache!
+        end
+        yield
+      end
+
+      def clear_query_cache
+        connection_pools_list.each do |pool|
+          pool.lease_connection.clear_query_cache
+        end
+      end
+    end
+
     %w[
       clear_active_connections!
       clear_all_connections!
@@ -55,6 +84,7 @@ module ActiveRecord::Turntable
       reap
       release_connection
       verify_active_connections!
+      permanent_lease?
     ].each do |name|
       define_method(name.to_sym) do
         connection_pools_list.each { |cp| cp.public_send(name.to_sym) }

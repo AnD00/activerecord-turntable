@@ -5,6 +5,13 @@ describe ActiveRecord::Turntable::ActiveRecordExt::QueryCache do
   def middleware(&app)
     executor = Class.new(ActiveSupport::Executor)
     ActiveRecord::QueryCache.install_executor_hooks executor
+    
+    # Rails7.2からConnectionPool内に独自のExecutorHooksが作成されている
+    # https://github.com/rails/rails/pull/53118
+    if ActiveRecord::Turntable::Util.ar72_or_later?
+      ActiveRecord::ConnectionAdapters::ConnectionPool.install_executor_hooks executor
+    end
+
     lambda do |env|
       if ActiveRecord::Turntable::Util.ar60_or_later? && !ActiveRecord::Turntable::Util.ar71_or_later?
         original_handlers = ActiveRecord::Base.connection_handlers

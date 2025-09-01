@@ -101,6 +101,9 @@ module ActiveRecord::Turntable::Migration
 
       ActiveRecord::Tasks::DatabaseTasks.each_current_turntable_cluster_connected(current_environment) do |name, configuration|
         puts "[turntable] *** Migrating database: #{configuration['database']}(Shard: #{name})"
+        if ActiveRecord::Turntable::Util.ar72_or_later?
+          schema_migration.instance_variable_get(:@pool).automatic_reconnect ||= true
+        end
         super(target_version)
       end
 
@@ -112,6 +115,9 @@ module ActiveRecord::Turntable::Migration
 
       ActiveRecord::Tasks::DatabaseTasks.each_current_turntable_cluster_connected(current_environment) do |name, configuration|
         puts "[turntable] *** Migrating database: #{configuration['database']}(Shard: #{name})"
+        if ActiveRecord::Turntable::Util.ar72_or_later?
+          schema_migration.instance_variable_get(:@pool).automatic_reconnect ||= true
+        end
         super(target_version)
       end
 
@@ -123,6 +129,9 @@ module ActiveRecord::Turntable::Migration
 
       ActiveRecord::Tasks::DatabaseTasks.each_current_turntable_cluster_connected(current_environment) do |name, configuration|
         puts "[turntable] *** Migrating database: #{configuration['database']}(Shard: #{name})"
+        if ActiveRecord::Turntable::Util.ar72_or_later?
+          schema_migration.instance_variable_get(:@pool).automatic_reconnect ||= true
+        end
         super(target_version)
       end
 
