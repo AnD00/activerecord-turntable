@@ -6,7 +6,9 @@ module ActiveRecord::Turntable
           results = @shards_query_hash.map do |shard, query|
             args = @args.dup
             args[1] = args[1].dup if args[1].present?
-            shard.connection.send(@called_method, query, *args, &@block)
+            hashes, positional_args = args.partition { |arg| arg.is_a?(Hash) }
+            kwargs = hashes.reduce({}, :merge)
+            shard.connection.send(@called_method, query, *positional_args, **kwargs, &@block)
           end
           merge_results(results)
         end
