@@ -12,7 +12,13 @@ describe ActiveRecord::TestFixtures do
   let(:fixture_file) { File.join(fixtures_root, "items.yml") }
   let(:test_fixture_class) { Class.new(ActiveSupport::TestCase) { include ActiveRecord::TestFixtures } }
   let(:test_fixture) { test_fixture_class.new("test") }
-  let(:items) { YAML.load(ERB.new(IO.read(fixture_file)).result, aliases: true) }
+  let(:items) {
+    if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
+      YAML.load(ERB.new(IO.read(fixture_file)).result, aliases: true)
+    else
+      YAML.load(ERB.new(IO.read(fixture_file)).result)
+    end
+  }
 
   describe "#setup_fixtures" do
     after do

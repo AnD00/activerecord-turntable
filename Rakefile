@@ -21,7 +21,11 @@ namespace :turntable do
 
     task :load_config => :rails_env do
       yaml_file = File.join(File.dirname(__FILE__), "spec/config/database.yml")
-      ActiveRecord::Base.configurations = YAML.load(ERB.new(IO.read(yaml_file)).result, aliases: true)
+      ActiveRecord::Base.configurations = if Gem::Version.new(RUBY_VERSION) >= Gem::Version.new('3.1.0')
+        YAML.load(ERB.new(IO.read(yaml_file)).result, aliases: true)
+      else
+        YAML.load(ERB.new(IO.read(yaml_file)).result)
+      end
     end
 
     desc "create turntable test database"
