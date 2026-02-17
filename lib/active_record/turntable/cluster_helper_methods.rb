@@ -30,7 +30,11 @@ module ActiveRecord::Turntable
       end
 
       def force_connect_all_shards!
-        turntable_pool_list.each(&:connection)
+        if Util.ar72_or_later?
+          turntable_pool_list.each(&:lease_connection)
+        else
+          turntable_pool_list.each(&:connection)
+        end
       end
 
       def spec_for(config)

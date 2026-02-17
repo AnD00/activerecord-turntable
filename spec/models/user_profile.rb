@@ -3,5 +3,6 @@ class UserProfile < ActiveRecord::Base
   turntable :user_cluster, :user_id
   sequencer :user_seq
   belongs_to :user
-  serialize :data, JSON
+  # https://github.com/rails/rails/pull/47463
+  serialize :data, coder: JSON
 end

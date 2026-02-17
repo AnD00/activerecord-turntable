@@ -10,6 +10,30 @@ module ActiveRecord::Turntable
       module ClassMethods
         extend Compatibility
 
+        module V7_2
+          def run
+            result = super
+
+            turntable_result = ActiveRecord::Base.turntable_pool_list.reject(&:query_cache_enabled).each do |pool|
+              next if pool.db_config&.query_cache == false
+              pool.enable_query_cache!
+            end
+
+            [result, turntable_result]
+          end
+
+          def complete(pools)
+            original_pools, turntable_pools = pools
+
+            super(original_pools)
+
+            turntable_pools.each do |pool|
+              pool.disable_query_cache!
+              pool.clear_query_cache
+            end
+          end
+        end
+
         module V6_0
         end
 

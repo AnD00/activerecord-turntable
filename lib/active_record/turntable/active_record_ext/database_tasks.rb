@@ -35,12 +35,20 @@ module ActiveRecord
       def each_current_turntable_cluster_connected(environment)
         old_connection_pool = ActiveRecord::Base.connection_pool
         each_current_turntable_cluster_configuration(environment) do |name, configuration|
-          ActiveRecord::Base.clear_active_connections!
+          if ActiveRecord::Turntable::Util.ar72_or_later?
+            ActiveRecord::Base.connection_handler.clear_active_connections!
+          else
+            ActiveRecord::Base.clear_active_connections!
+          end
           ActiveRecord::Base.establish_connection(configuration)
           ActiveRecord::Migration.current_shard = name
           yield(name, configuration)
         end
-        ActiveRecord::Base.clear_active_connections!
+        if ActiveRecord::Turntable::Util.ar72_or_later?
+          ActiveRecord::Base.connection_handler.clear_active_connections!
+        else
+          ActiveRecord::Base.clear_active_connections!
+        end
         if ActiveRecord::Turntable::Util.ar61_or_later?
           ActiveRecord::Base.establish_connection old_connection_pool.db_config
         else

@@ -75,103 +75,135 @@ module ActiveRecord
   module TestFixtures
     # rubocop:disable Style/ClassVars, Style/RedundantException
     def setup_fixtures(config = ActiveRecord::Base)
-      if pre_loaded_fixtures && !use_transactional_fixtures
-        raise RuntimeError, "pre_loaded_fixtures requires use_transactional_fixtures"
-      end
+      if ActiveRecord::Turntable::Util.ar72_or_later?
+        if pre_loaded_fixtures && !use_transactional_tests
+          raise RuntimeError, "pre_loaded_fixtures requires use_transactional_tests"
+        end
 
-      @fixture_cache = {}
-      @fixture_connections = []
-      @@already_loaded_fixtures ||= {}
-      @connection_subscriber = nil
-      @legacy_saved_pool_configs = Hash.new { |hash, key| hash[key] = {} }
-      @saved_pool_configs = Hash.new { |hash, key| hash[key] = {} }
+        @fixture_cache = {}
+        @fixture_cache_key = [self.class.fixture_table_names.dup, self.class.fixture_paths.dup, self.class.fixture_class_names.dup]
+        @fixture_connection_pools = []
+        @@already_loaded_fixtures ||= {}
+        @connection_subscriber = nil
+        @saved_pool_configs = Hash.new { |hash, key| hash[key] = {} }
 
-      # Load fixtures once and begin transaction.
-      if run_in_transaction?
-        if @@already_loaded_fixtures[self.class]
-          @loaded_fixtures = @@already_loaded_fixtures[self.class]
+        if run_in_transaction?
+          # Load fixtures once and begin transaction.
+          @loaded_fixtures = @@already_loaded_fixtures[@fixture_cache_key]
+          unless @loaded_fixtures
+            @@already_loaded_fixtures.clear
+            @loaded_fixtures = @@already_loaded_fixtures[@fixture_cache_key] = load_fixtures(config)
+          end
+
+          setup_transactional_fixtures
         else
+          # Load fixtures for every test.
+          ActiveRecord::FixtureSet.reset_cache
+          invalidate_already_loaded_fixtures
           @loaded_fixtures = load_fixtures(config)
-          @@already_loaded_fixtures[self.class] = @loaded_fixtures
         end
 
-        # Begin transactions for connections already established
-        ActiveRecord::Base.force_connect_all_shards!
-        @fixture_connections = enlist_fixture_connections
-        @fixture_connections.each do |connection|
-          connection.begin_transaction joinable: false
-          if ActiveRecord::Turntable::Util.ar51_or_later?
-            connection.pool.lock_thread = true
-          end
-        end
-
-        if ActiveRecord::Turntable::Util.ar71_or_later?
-          @connection_subscriber = ActiveSupport::Notifications.subscribe("!connection.active_record") do |_, _, _, _, payload|
-            connection_name = payload[:connection_name] if payload.key?(:connection_name)
-            shard = payload[:shard] if payload.key?(:shard)
-  
-            if connection_name
-              begin
-                connection = ActiveRecord::Base.connection_handler.retrieve_connection(connection_name, shard: shard)
-              rescue ConnectionNotEstablished
-                connection = nil
-              end
-  
-              if connection
-                setup_shared_connection_pool
-  
-                if !@fixture_connections.include?(connection)
-                  connection.begin_transaction joinable: false, _lazy: false
-                  connection.pool.lock_thread = true if lock_threads
-                  @fixture_connections << connection
-                end
-              end
-            end
-          end
-        elsif ActiveRecord::Turntable::Util.ar51_or_later?
-          # When connections are established in the future, begin a transaction too
-          @connection_subscriber = ActiveSupport::Notifications.subscribe("!connection.active_record") do |_, _, _, _, payload|
-            spec_name = payload[:spec_name] if payload.key?(:spec_name)
-            if ActiveRecord::Turntable::Util.ar61_or_later?
-              shard = payload[:shard] if payload.key?(:shard)
-              setup_shared_connection_pool if ActiveRecord::Base.legacy_connection_handling
-            end
-
-            if spec_name
-              begin
-                if ActiveRecord::Turntable::Util.ar61_or_later?
-                  connection = ActiveRecord::Base.connection_handler.retrieve_connection(spec_name, shard: shard)
-                else
-                  connection = ActiveRecord::Base.connection_handler.retrieve_connection(spec_name)
-                end
-              rescue ConnectionNotEstablished
-                connection = nil
-              end
-
-              if connection
-                if ActiveRecord::Turntable::Util.ar61_or_later?
-                  setup_shared_connection_pool unless ActiveRecord::Base.legacy_connection_handling
-                end
-
-                if !@fixture_connections.include?(connection)
-                  connection.begin_transaction joinable: false
-                  connection.pool.lock_thread = true
-                  @fixture_connections << connection
-                end
-              end
-            end
-          end
-        end
-
-      # Load fixtures for every test.
+        # Instantiate fixtures for every test if requested.
+        instantiate_fixtures if use_instantiated_fixtures
       else
-        ActiveRecord::FixtureSet.reset_cache
-        @@already_loaded_fixtures[self.class] = nil
-        @loaded_fixtures = load_fixtures(config)
-      end
+        if pre_loaded_fixtures && !use_transactional_fixtures
+          raise RuntimeError, "pre_loaded_fixtures requires use_transactional_fixtures"
+        end
 
-      # Instantiate fixtures for every test if requested.
-      instantiate_fixtures if use_instantiated_fixtures
+        @fixture_cache = {}
+        @fixture_connections = []
+        @@already_loaded_fixtures ||= {}
+        @connection_subscriber = nil
+        @legacy_saved_pool_configs = Hash.new { |hash, key| hash[key] = {} }
+        @saved_pool_configs = Hash.new { |hash, key| hash[key] = {} }
+
+        # Load fixtures once and begin transaction.
+        if run_in_transaction?
+          if @@already_loaded_fixtures[self.class]
+            @loaded_fixtures = @@already_loaded_fixtures[self.class]
+          else
+            @loaded_fixtures = load_fixtures(config)
+            @@already_loaded_fixtures[self.class] = @loaded_fixtures
+          end
+
+          # Begin transactions for connections already established
+          ActiveRecord::Base.force_connect_all_shards!
+          @fixture_connections = enlist_fixture_connections
+          @fixture_connections.each do |connection|
+            connection.begin_transaction joinable: false
+            if ActiveRecord::Turntable::Util.ar51_or_later?
+              connection.pool.lock_thread = true
+            end
+          end
+
+          if ActiveRecord::Turntable::Util.ar71_or_later?
+            @connection_subscriber = ActiveSupport::Notifications.subscribe("!connection.active_record") do |_, _, _, _, payload|
+              connection_name = payload[:connection_name] if payload.key?(:connection_name)
+              shard = payload[:shard] if payload.key?(:shard)
+    
+              if connection_name
+                begin
+                  connection = ActiveRecord::Base.connection_handler.retrieve_connection(connection_name, shard: shard)
+                rescue ConnectionNotEstablished
+                  connection = nil
+                end
+    
+                if connection
+                  setup_shared_connection_pool
+    
+                  if !@fixture_connections.include?(connection)
+                    connection.begin_transaction joinable: false, _lazy: false
+                    connection.pool.lock_thread = true if lock_threads
+                    @fixture_connections << connection
+                  end
+                end
+              end
+            end
+          elsif ActiveRecord::Turntable::Util.ar51_or_later?
+            # When connections are established in the future, begin a transaction too
+            @connection_subscriber = ActiveSupport::Notifications.subscribe("!connection.active_record") do |_, _, _, _, payload|
+              spec_name = payload[:spec_name] if payload.key?(:spec_name)
+              if ActiveRecord::Turntable::Util.ar61_or_later?
+                shard = payload[:shard] if payload.key?(:shard)
+                setup_shared_connection_pool if ActiveRecord::Base.legacy_connection_handling
+              end
+
+              if spec_name
+                begin
+                  if ActiveRecord::Turntable::Util.ar61_or_later?
+                    connection = ActiveRecord::Base.connection_handler.retrieve_connection(spec_name, shard: shard)
+                  else
+                    connection = ActiveRecord::Base.connection_handler.retrieve_connection(spec_name)
+                  end
+                rescue ConnectionNotEstablished
+                  connection = nil
+                end
+
+                if connection
+                  if ActiveRecord::Turntable::Util.ar61_or_later?
+                    setup_shared_connection_pool unless ActiveRecord::Base.legacy_connection_handling
+                  end
+
+                  if !@fixture_connections.include?(connection)
+                    connection.begin_transaction joinable: false
+                    connection.pool.lock_thread = true
+                    @fixture_connections << connection
+                  end
+                end
+              end
+            end
+          end
+
+        # Load fixtures for every test.
+        else
+          ActiveRecord::FixtureSet.reset_cache
+          @@already_loaded_fixtures[self.class] = nil
+          @loaded_fixtures = load_fixtures(config)
+        end
+
+        # Instantiate fixtures for every test if requested.
+        instantiate_fixtures if use_instantiated_fixtures
+      end
     end
     # rubocop:enable Style/ClassVars, Style/RedundantException
   end

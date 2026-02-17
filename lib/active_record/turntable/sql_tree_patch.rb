@@ -5,6 +5,7 @@ require "active_support/core_ext/kernel/reporting"
 module SQLTree
   class << self
     attr_accessor :identifier_quote_field_char
+    alias_method :original_bracket, :[]
   end
   self.identifier_quote_field_char = "`"
 
@@ -35,6 +36,9 @@ class SQLTree::Token
 end
 
 class SQLTree::Tokenizer
+  alias_method :original_tokenize_quoted_string, :tokenize_quoted_string
+  alias_method :original_tokenize_possible_escaped_string, :tokenize_possible_escaped_string
+
   def tokenize_quoted_string(&block) # :yields: SQLTree::Token::String
     string = ""
     until next_char.nil? || current_char == "'"
@@ -91,6 +95,13 @@ module SQLTree::Node
   end
 
   class SelectQuery < Base
+    class << self
+      alias_method :original_parse, :parse
+      alias_method :original_parse_limit_clause, :parse_limit_clause
+    end
+
+    alias_method :original_to_sql, :to_sql
+
     child :offset
 
     def to_sql(options = {})
@@ -157,6 +168,13 @@ module SQLTree::Node
   end
 
   class TableReference < Base
+    class << self
+      alias_method :original_parse, :parse
+    end
+
+    alias_method :original_initialize, :initialize
+    alias_method :original_to_sql, :to_sql
+
     leaf :index_hint
 
     def initialize(table, table_alias = nil, index_hint = nil)
@@ -231,6 +249,10 @@ module SQLTree::Node
 
   class Expression < Base
     class BinaryOperator < SQLTree::Node::Expression
+      class << self
+        alias_method :original_parse_rhs, :parse_rhs
+      end
+
       TOKEN_PRECEDENCE[2] << SQLTree::Token::BETWEEN
       silence_warnings do
         TOKENS = TOKEN_PRECEDENCE.flatten
@@ -263,12 +285,20 @@ module SQLTree::Node
     end
 
     class Field < Variable
+      alias_method :original_to_sql, :to_sql
+
       def to_sql(options = {})
         @table.nil? ? quote_field_name(@name) : quote_field_name(@table) + "." + quote_field_name(@name)
       end
     end
 
     class Value
+      class << self
+        alias_method :original_parse, :parse
+      end
+
+      alias_method :original_to_sql, :to_sql
+
       leaf :escape
 
       def to_sql(options = {})
@@ -301,6 +331,10 @@ module SQLTree::Node
     end
 
     class EscapedValue < Value
+      class << self
+        alias_method :original_parse_atomic, :parse_atomic
+      end
+
       def initialize(value, escape = nil)
         @value = value
         @escape = escape
@@ -361,6 +395,12 @@ module SQLTree::Node
   end
 
   class InsertQuery < Base
+    class << self
+      alias_method :original_parse_value_list, :parse_value_list
+    end
+
+    alias_method :original_to_sql, :to_sql
+
     def to_sql(options = {})
       sql = "INSERT INTO #{table.to_sql(options)} "
       sql << "(" + fields.map { |f| f.to_sql(options) }.join(", ") + ") " if fields

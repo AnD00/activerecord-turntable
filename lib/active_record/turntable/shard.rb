@@ -21,8 +21,14 @@ module ActiveRecord::Turntable
       if use_slave?
         current_slave_shard.connection
       else
-        connection_pool.connection.tap do |conn|
-          conn.turntable_shard_name ||= name
+        if Util.ar72_or_later?
+          connection_pool.lease_connection.tap do |conn|
+            conn.turntable_shard_name ||= name
+          end
+        else
+          connection_pool.connection.tap do |conn|
+            conn.turntable_shard_name ||= name
+          end
         end
       end
     end
