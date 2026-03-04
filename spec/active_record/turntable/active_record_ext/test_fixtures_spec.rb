@@ -12,7 +12,9 @@ describe ActiveRecord::TestFixtures do
   let(:fixture_file) { File.join(fixtures_root, "items.yml") }
   let(:test_fixture_class) { Class.new(ActiveSupport::TestCase) { include ActiveRecord::TestFixtures } }
   let(:test_fixture) { test_fixture_class.new("test") }
-  let(:items) { YAML.load(ERB.new(IO.read(fixture_file)).result, aliases: true) }
+  # items.yml has no YAML anchors/aliases; aliases: true is not needed.
+  # Removed for Ruby 3.0 (Psych 3.x) compatibility (aliases: was added in Psych 4.0).
+  let(:items) { YAML.load(ERB.new(IO.read(fixture_file)).result) }
 
   describe "#setup_fixtures" do
     after do

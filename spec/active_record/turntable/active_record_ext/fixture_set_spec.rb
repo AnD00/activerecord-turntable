@@ -6,7 +6,9 @@ require "active_record/turntable/active_record_ext/fixtures"
 describe ActiveRecord::FixtureSet do
   let(:fixtures_root) { File.join(File.dirname(__FILE__), "../../../fixtures") }
   let(:fixture_file) { File.join(fixtures_root, "items.yml") }
-  let(:items) { YAML.load(ERB.new(IO.read(fixture_file)).result, aliases: true) }
+  # items.yml has no YAML anchors/aliases; aliases: true is not needed.
+  # Removed for Ruby 3.0 (Psych 3.x) compatibility (aliases: was added in Psych 4.0).
+  let(:items) { YAML.load(ERB.new(IO.read(fixture_file)).result) }
 
   before do
     ActiveRecord::FixtureSet.reset_cache

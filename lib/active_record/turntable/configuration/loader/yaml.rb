@@ -14,7 +14,9 @@ module ActiveRecord::Turntable
       end
 
       def load(env)
-        yaml = YAML.load(ERB.new(IO.read(path)).result, aliases: true).with_indifferent_access[env]
+        # aliases: keyword was added in Psych 4.0 (Ruby 3.1+). Ruby 3.0 uses Psych 3.x, so omit it.
+        # (This branch targets Ruby 3.0 only; Ruby 3.1+ is handled in feature/support-ruby3.2)
+        yaml = YAML.load(ERB.new(IO.read(path)).result).with_indifferent_access[env]
         load_clusters(yaml[:clusters])
         load_global_settings(yaml)
 

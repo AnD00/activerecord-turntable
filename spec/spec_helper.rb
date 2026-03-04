@@ -28,7 +28,10 @@ MIGRATIONS_ROOT = File.expand_path(File.join(File.dirname(__FILE__), "migrations
 
 # Requires supporting files with custom matchers and macros, etc,
 # in ./support/ and its subdirectories.
-ActiveRecord::Base.configurations = YAML.load_file(File.join(File.dirname(__FILE__), "config/database.yml"), aliases: true)
+# aliases: keyword was added in Psych 4.0 (Ruby 3.1+). Ruby 3.0 uses Psych 3.x, so omit it.
+# ERB is processed so MYSQL_HOST env var can override the DB host (e.g. when using Docker).
+db_config_file = File.join(File.dirname(__FILE__), "config/database.yml")
+ActiveRecord::Base.configurations = YAML.load(ERB.new(IO.read(db_config_file)).result)
 ActiveRecord::Base.establish_connection(:test)
 
 Dir["#{File.dirname(__FILE__)}/support/**/*.rb"].each { |f| require f }

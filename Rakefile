@@ -21,7 +21,9 @@ namespace :turntable do
 
     task :load_config => :rails_env do
       yaml_file = File.join(File.dirname(__FILE__), "spec/config/database.yml")
-      ActiveRecord::Base.configurations = YAML.load(ERB.new(IO.read(yaml_file)).result, aliases: true)
+      # aliases: keyword was added in Psych 4.0 (Ruby 3.1+). Ruby 3.0 uses Psych 3.3, so omit it.
+      # (This branch targets Ruby 3.0 only; Ruby 3.1+ is handled in feature/support-ruby3.2)
+      ActiveRecord::Base.configurations = YAML.load(ERB.new(IO.read(yaml_file)).result)
     end
 
     desc "create turntable test database"
