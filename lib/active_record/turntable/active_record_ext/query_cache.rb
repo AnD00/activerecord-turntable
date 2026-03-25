@@ -10,6 +10,9 @@ module ActiveRecord::Turntable
       module ClassMethods
         extend Compatibility
 
+        module V8_0
+        end
+
         module V7_2
           def run
             result = super
