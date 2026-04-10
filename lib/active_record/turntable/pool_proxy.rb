@@ -50,6 +50,12 @@ module ActiveRecord::Turntable
       end
     end
 
+    if Util.ar80_or_later?
+      def connection_descriptor
+        proxy.default_shard.connection_pool.connection_descriptor
+      end
+    end
+
     def active_connection?
       connection_pools_list.any?(&:active_connection?)
     end

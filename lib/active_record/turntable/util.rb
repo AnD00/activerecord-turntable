@@ -55,6 +55,10 @@ module ActiveRecord::Turntable
       ar_version_equals_or_later?("7.2")
     end
 
+    def ar80_or_later?
+      ar_version_equals_or_later?("8.0")
+    end
+
     module_function :ar_version_equals_or_later?,
                     :ar_version_earlier_than?,
                     :ar_version,
@@ -67,6 +71,7 @@ module ActiveRecord::Turntable
                     :ar61_or_later?,
                     :ar70_or_later?,
                     :ar71_or_later?,
-                    :ar72_or_later?
+                    :ar72_or_later?,
+                    :ar80_or_later?
   end
 end

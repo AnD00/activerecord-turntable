@@ -40,7 +40,7 @@ class SQLTree::Tokenizer
   alias_method :original_tokenize_possible_escaped_string, :tokenize_possible_escaped_string
 
   def tokenize_quoted_string(&block) # :yields: SQLTree::Token::String
-    string = ""
+    string = +""
     until next_char.nil? || current_char == "'"
       string << (current_char == "\\" ? instance_eval("%@\\#{next_char.gsub('@', '\@')}@") : current_char)
     end
@@ -106,7 +106,7 @@ module SQLTree::Node
 
     def to_sql(options = {})
       raise "At least one SELECT expression is required" if self.select.empty?
-      sql = self.distinct ? "SELECT DISTINCT " : "SELECT "
+      sql = self.distinct ? +"SELECT DISTINCT " : +"SELECT "
       sql << select.map { |s| s.to_sql(options) }.join(", ")
       sql << " FROM "     << from.map { |f| f.to_sql(options) }.join(", ") if from
       sql << " WHERE "    << where.to_sql(options) if where
