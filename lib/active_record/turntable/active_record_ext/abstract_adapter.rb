@@ -28,6 +28,28 @@ module ActiveRecord::Turntable
 
       # @note override for append current shard name
       # rubocop:disable Style/HashSyntax, Style/MultilineMethodCallBraceLayout
+      module V8_1
+        def log(sql, name = "SQL", binds = [], type_casted_binds = [], async: false, allow_retry: false, &block)
+          instrumenter.instrument(
+            "sql.active_record",
+            sql:               sql,
+            name:              name,
+            binds:             binds,
+            type_casted_binds: type_casted_binds,
+            async:             async,
+            allow_retry:       allow_retry,
+            connection:        self,
+            transaction:       current_transaction.user_transaction.presence,
+            affected_rows:     0,
+            row_count:         0,
+            turntable_shard_name: turntable_shard_name,
+            &block
+          )
+        rescue ActiveRecord::StatementInvalid => ex
+          raise ex.set_query(sql, binds)
+        end
+      end
+
       module V8_0
         def log(sql, name = "SQL", binds = [], type_casted_binds = [], async: false, &block)
           instrumenter.instrument(
