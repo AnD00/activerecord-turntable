@@ -17,7 +17,15 @@ module ActiveRecord::Turntable
       end
     end
 
-    if Util.ar72_or_later?
+    if Util.ar81_or_later?
+      delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout=,
+      :connections, :size, :max_connections, :min_connections, :max_age, :keepalive,
+      :reaper, :schema_cache, :schema_cache=, :pool_config, :discarded?,
+      :async_executor, :shard, :role, :schedule_query, :schema_reflection, :schema_reflection=, :server_version,
+      :activated?, :maintainable?, :num_available_in_queue, :reaper_lock,
+      :pool_transaction_isolation_level, :pool_transaction_isolation_level=,
+      :with_pool_transaction_isolation_level, to: :proxy
+    elsif Util.ar72_or_later?
       delegate :connected?, :checkout_timeout, :automatic_reconnect, :automatic_reconnect=, :checkout_timeout=,
       :connections, :size, :reaper, :schema_cache, :schema_cache=, :pool_config, :connection_klass, :discarded?,
       :connection_class, :async_executor, :shard, :role, :schedule_query, :schema_reflection, :schema_reflection=, :server_version, to: :proxy
@@ -75,6 +83,20 @@ module ActiveRecord::Turntable
       def clear_query_cache
         connection_pools_list.each do |pool|
           pool.lease_connection.clear_query_cache
+        end
+      end
+    end
+
+    if Util.ar81_or_later?
+      %w[activate recycle! prepopulate preconnect].each do |name|
+        define_method(name.to_sym) do
+          connection_pools_list.each { |cp| cp.public_send(name.to_sym) }
+        end
+      end
+
+      %w[retire_old_connections keep_alive].each do |name|
+        define_method(name.to_sym) do |*args|
+          connection_pools_list.each { |cp| cp.public_send(name.to_sym, *args) }
         end
       end
     end
